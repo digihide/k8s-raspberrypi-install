@@ -44,7 +44,7 @@ sudo timedatectl set-timezone Asia/Tokyo
 
 
 #ip6 stop
-/etc/sysctl.conf << EOF
+cat > /etc/sysctl.conf << EOF
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 net.ipv6.conf.eth0.disable_ipv6 = 1
