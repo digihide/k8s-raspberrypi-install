@@ -9,6 +9,8 @@ raspberry
 raspberry
 EOF
 
+sudo adduser pi sudo
+
 # hostname adding
 sudo hostnamectl set-hostname rasp-xxxx.local
 
