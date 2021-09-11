@@ -1,15 +1,14 @@
 #!/bin/sh
 
 
-#user adding
+# user adding
 sudo useradd -m -s /usr/bin/bash pi
-
 /usr/bin/passwd pi <<EOF
 raspberry
 raspberry
 EOF
-
 sudo adduser pi sudo
+
 
 # hostname adding
 sudo hostnamectl set-hostname rasp-xxxx.local
