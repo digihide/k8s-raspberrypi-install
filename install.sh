@@ -145,7 +145,7 @@ curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:sta
 curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | apt-key add -
 
 apt-get update
-apt-get install cri-o cri-o-runc
+apt-get install cri-o cri-o-runc -y
 
 systemctl daemon-reload
 systemctl start crio
