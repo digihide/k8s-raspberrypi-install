@@ -14,7 +14,7 @@ sudo hostnamectl set-hostname rasp-xxxx.local
 
 
 #network adding
-/etc/netplan/99-network.yaml <<EOF
+cat > /etc/netplan/99-network.yaml <<EOF
 network:
   version: 2
   renderer: networkd
