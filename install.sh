@@ -119,7 +119,9 @@ sudo systemctl enable docker
 
 
 #cgroup
-sed -i "s/$/ cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory/g" /boot/firmware/cmdline.txt
+cat > /boot/firmware/cmdline.txt <<EOF
+net.ifnames=0 dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=LABEL=writable rootfstype=ext4 elevator=deadline rootwait fixrtc cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory
+EOF
 
 
 ## CRI-O settings ##
