@@ -2,10 +2,25 @@
 
 #k8sの推進環境にruntimeがcri-oなどの変更になっているので
 #改めての導入方法を以下に記載する。
-
-#◆◇手順◆◇
 #以下の手順で、行う。
 #ホスト名およびIPアドレスについては、環境に合わせること！
+
+IP_LIST=(
+	192.168.10.1
+	192.168.10.2
+	192.168.10.3
+	)
+
+for ip in ${IP_LIST[@]}
+do
+  ping_result=$(ping -c 3 $ip | grep 'timeout')
+
+  if [[ -n $ping_result ]]; then
+    echo static ip_address=192.168.10.$ip/24 >> /etc/dhcpcd.conf
+    echo not used $ip
+  break  # 該当するMACアドレスが見つかったらループを終了
+  fi
+done
 
 # IPの設定
 raspi-config nonint do_hostname raspi-master
@@ -14,11 +29,15 @@ sudo raspi-config  --expand-rootfs
 sudo apt-get update && sudo apt-get dist-upgrade -y
 sudo apt-get update && sudo apt-get upgrade -y
 
-cat <<EOF >> /etc/dhcpcd.conf
-static ip_address=192.168.13.xx/24
-static routers=192.168.13.99
-static domain_name_servers=192.168.10.1 8.8.8.8
-EOF
+
+#echo static ip_address=192.168.10.$ip/24 >> /etc/dhcpcd.conf
+echo static routers=192.168.10.1 >> /etc/dhcpcd.conf
+echo static domain_name_servers=192.168.10.1 8.8.8.8 >> /etc/dhcpcd.conf
+
+# cat <<EOF >> /etc/dhcpcd.conf
+# static routers=192.168.10.1
+# static domain_name_servers=192.168.10.1 8.8.8.8
+# EOF
 
 
 # cgroup settings
