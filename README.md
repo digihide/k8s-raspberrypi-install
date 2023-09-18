@@ -1,1 +1,1 @@
-# k8s-raspberrypi-ubuntu64
+# k8s for raspberrypi install 
