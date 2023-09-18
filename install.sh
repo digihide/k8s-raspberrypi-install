@@ -4,23 +4,15 @@
 #改めての導入方法を以下に記載する。
 #以下の手順で、行う。
 #ホスト名およびIPアドレスについては、環境に合わせること！
-
+OS=Debian_10
+CRIO_VERSION=1.23
 IP_LIST=(
 	192.168.10.1
 	192.168.10.2
 	192.168.10.3
 	)
 
-for ip in ${IP_LIST[@]}
-do
-  ping_result=$(ping -c 3 $ip | grep 'timeout')
 
-  if [[ -n $ping_result ]]; then
-    echo static ip_address=192.168.10.$ip/24 >> /etc/dhcpcd.conf
-    echo not used $ip
-  break  # 該当するMACアドレスが見つかったらループを終了
-  fi
-done
 
 # IPの設定
 raspi-config nonint do_hostname raspi-master
@@ -29,12 +21,22 @@ sudo raspi-config  --expand-rootfs
 sudo apt-get update && sudo apt-get dist-upgrade -y
 sudo apt-get update && sudo apt-get upgrade -y
 
+for ip in ${IP_LIST[@]}
+do
+  ping_result=$(ping -c 3 $ip | grep 'timeout')
 
-#echo static ip_address=192.168.10.$ip/24 >> /etc/dhcpcd.conf
+  if [[ -n $ping_result ]]; then
+    echo static ip_address=192.168.10.$ip/24 >> /etc/dhcpcd.conf
+  break  # 該当するMACアドレスが見つかったらループを終了
+  fi
+done
+
 echo static routers=192.168.10.1 >> /etc/dhcpcd.conf
 echo static domain_name_servers=192.168.10.1 8.8.8.8 >> /etc/dhcpcd.conf
 
+
 # cat <<EOF >> /etc/dhcpcd.conf
+# static ip_address=192.168.10.xx/24
 # static routers=192.168.10.1
 # static domain_name_servers=192.168.10.1 8.8.8.8
 # EOF
@@ -86,10 +88,8 @@ EOF
 sudo sysctl --system
 
 
-OS=Debian_10
-CRIO_VERSION=1.23
-echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /"|sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$CRIO_VERSION/$OS/ /"|sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION.list
+echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$CRIO_VERSION/$OS/ /" | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION.list
 curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION/$OS/Release.key | sudo apt-key add -
 curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | sudo apt-key add -
 sudo apt update
