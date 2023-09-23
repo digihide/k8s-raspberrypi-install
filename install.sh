@@ -1,45 +1,42 @@
-#!/bin/sh
+#!/bin/bash
 
-#k8sの推進環境にruntimeがcri-oなどの変更になっているので
-#改めての導入方法を以下に記載する。
-#以下の手順で、行う。
-#ホスト名およびIPアドレスについては、環境に合わせること！
+# root環境にて実施
+# k8sの推進環境にruntimeがcri-oなどの変更になっているので
+# 改めての導入方法を以下に記載する。
+# ホスト名およびIPアドレスについては、環境に合わせること！
 
-OS=Debian_10
-CRIO_VERSION=1.23
+pass=raspberry
+OS=Raspbian_10
+VERSION=1.20
 IP_LIST=(
 	192.168.10.10
 	192.168.10.11
 	192.168.10.12
 	)
+HOST_NAME=raspi-master
 
 
-# IPの設定
-raspi-config nonint do_hostname raspi-master
+
+
+echo $pass | sudo raspi-config nonint do_hostname $HOST_NAME
 sudo raspi-config nonint do_change_timezone Asia/Tokyo
 sudo raspi-config  --expand-rootfs
 sudo apt-get update && sudo apt-get dist-upgrade -y
 sudo apt-get update && sudo apt-get upgrade -y
 
+# IPの設定
 for ip in ${IP_LIST[@]}
 do
-  ping_result=$(ping -c 3 $ip | grep 'timeout')
+  ping_result=$(ping -c 3 $ip | grep 'Unreachable')
 
   if [[ -n $ping_result ]]; then
-    echo static ip_address=192.168.10.$ip/24 >> /etc/dhcpcd.conf
+    echo static ip_address=$ip/24 >> /etc/dhcpcd.conf
   break  # 該当するMACアドレスが見つかったらループを終了
   fi
 done
 
 echo static routers=192.168.10.1 >> /etc/dhcpcd.conf
 echo static domain_name_servers=192.168.10.1 8.8.8.8 >> /etc/dhcpcd.conf
-
-
-# cat <<EOF >> /etc/dhcpcd.conf
-# static ip_address=192.168.10.xx/24
-# static routers=192.168.10.1
-# static domain_name_servers=192.168.10.1 8.8.8.8
-# EOF
 
 
 # cgroup settings
@@ -71,7 +68,7 @@ sudo update-alternatives --set ebtables /usr/sbin/ebtables-legacy
 sudo sysctl --system
 
 
-# crio(runtime for Docker) setting
+# CRIO(runtime for Docker) Install
 cat <<EOF | sudo tee /etc/modules-load.d/crio.conf
 overlay
 br_netfilter
@@ -88,17 +85,35 @@ EOF
 sudo sysctl --system
 
 
-echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$CRIO_VERSION/$OS/ /" | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION.list
-curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION/$OS/Release.key | sudo apt-key add -
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | sudo apt-key add -
+cat <<EOF | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /
+EOF
+cat <<EOF | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
+deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /
+EOF
+curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/Release.key | sudo apt-key --keyring /etc/apt/trusted.gpg.d/libcontainers.gpg add -
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | sudo apt-key --keyring /etc/apt/trusted.gpg.d/libcontainers.gpg add -
 sudo apt update
-sudo apt update
-sudo apt upgrade -y
-sudo apt install cri-o cri-o-runc -y
+sudo apt install -y cri-o cri-o-runc
 sudo systemctl daemon-reload
 sudo systemctl enable crio
 sudo systemctl start crio
+
+
+
+# containerd install
+sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo apt update
+sudo apt install containerd.io
+sudo mkdir -p /etc/containerd
+containerd config default | sudo tee /etc/containerd/config.toml
+sudo systemctl restart containerd
+sudo systemctl enable containerd
+sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
 
 
 # k8s install
@@ -111,12 +126,12 @@ EOF
 sudo apt update
 sudo apt install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
-cat <<EOF | sudo tee /etc/default/kubelet
+cat <<EOF | echo $pass | sudo tee /etc/default/kubelet
 KUBELET_EXTRA_ARGS=--container-runtime-endpoint='unix:///var/run/crio/crio.sock'
 EOF
 
-systemctl daemon-reload
-systemctl restart kubelet
+echo $pass | systemctl daemon-reload
+echo $pass | systemctl restart kubelet
 
 sudo reboot
 
