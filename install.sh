@@ -14,7 +14,8 @@ IP_LIST=(
 	192.168.10.12
 	)
 HOST_NAME=raspi-master
-
+HOST_NAME2=raspi-node1
+HOST_NAME3=raspi-node2
 
 
 
@@ -23,6 +24,11 @@ sudo raspi-config nonint do_change_timezone Asia/Tokyo
 sudo raspi-config  --expand-rootfs
 sudo apt-get update && sudo apt-get dist-upgrade -y
 sudo apt-get update && sudo apt-get upgrade -y
+
+# hosts
+echo 192.168.10.10 $HOST_NAME >> /etc/hosts
+echo 192.168.10.11 $HOST_NAME2 >> /etc/hosts
+echo 192.168.10.12 $HOST_NAME3 >> /etc/hosts
 
 # IPの設定
 for ip in ${IP_LIST[@]}
